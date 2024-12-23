@@ -1,0 +1,32 @@
+stages:
+    - test-distribution
+    - build-distribution
+    - release-distribution
+
+dzil-test:
+    stage: test-distribution
+    image: $CI_REGISTRY/blockstackers/perl-mojolicious:latest
+    script:
+        - dzil listdeps --missing|cpanm -n
+        - dzil test
+    rules:
+        - if: $CI_COMMIT_BRANCH =~ /^f-.*$/ || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_PIPELINE_SOURCE == 'merge_request_event'
+
+dzil-build:
+    stage: build-distribution
+    image: $CI_REGISTRY/blockstackers/perl-mojolicious:latest
+    dependencies:
+        - dzil-test
+    script:
+        - dzil build
+        - APP_VER=`cat package-version.txt`
+        - echo "Releasing $APP_VER"
+        - git tag "$APP_VER"
+        - git push --tags https://root:$GIT_TOKEN@gitlab.blockstackers.net/$CI_PROJECT_PATH.git HEAD:main
+        - curl -u token:${WOK_TOKEN} -F "author=MADCAT" -F "dist=@Multiformats-${APP_VER}.tar.gz" https://wok.blockstackers.net/upload
+        # FIXME FIXME: push to PAUSE; we're not using dzil release because reasons
+        # - echo "user $PAUSE_USER" > pause.cfg
+        # - echo "password $PAUSE_PASSWORD >> pause.cfg" 
+        # - cpan-upload --config pause.cfg Multiformats-${APP_VER}.tar.gz
+    rules:
+        - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

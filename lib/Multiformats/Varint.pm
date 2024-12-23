@@ -16,7 +16,7 @@ package
     }
 
     sub encode($self, $value) {
-        return encode_varint($value);
+        return varint_encode($value);
     }
 
     sub new($pkg) {
