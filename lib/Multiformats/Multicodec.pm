@@ -13,6 +13,22 @@ package
         [ 'dag-cbor', 0x71 ],
     ];
 
+    sub wrap($self, $as, $value) {
+        return multihash_wrap($as, $value);
+    }
+
+    sub unwrap($self,  $value) {
+        return multihash_unwrap($value);
+    }
+
+    sub get_codec($self, $value) {
+        return multihash_codec($value);
+    }
+
+    sub new($pkg) {
+        return bless({}, $pkg);
+    }
+
     sub _get_by_name($as) {
         foreach my $entry (@{__PACKAGE__->MULTICODEC_MAP}) {
             return $entry if($entry->[0] eq $as);
@@ -54,5 +70,52 @@ package
         }
     }
 }
+
+=pod
+
+=head1 NAME
+
+Multiformats::Multicodec - Multicodec encoding/decoding/wrapping
+
+=head1 SYNOPSIS
+
+    use Multiformats::Multicodec qw/multicodec_get_codec multicodec_unwrap multicodec_wrap/;
+
+    my $data = '...'; 
+
+    my $encoded = multicodec_wrap('dag-cbor', $data);
+    my $decoded = multicodec_unwrap($encoded); 
+
+    my $codec = multicodec_get_codec($encoded);
+
+    $codec->[0]; # dag-cbor
+    $codec->[1]; # 0x71
+    
+
+=head1 FUNCTIONS
+
+=head2 multicodec_wrap($codec, $data);
+
+Wraps the given data with the proper multicodec tag 
+
+=head2 multicodec_unwrap($data)
+
+Unwraps the given data and returns the original raw data
+
+=head2 multicodec_get_codec($data)
+
+Returns an arrayref containing the codec information that the data is encoded with. First item in the arrayref is the codec name, second item is the codec tag value.
+
+=head1 SUPPORTED CODECS
+
+=over
+
+=item * raw
+
+=item * dag-cbor
+
+=back
+
+=cut
 
 1;
