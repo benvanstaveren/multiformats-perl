@@ -46,7 +46,7 @@ package
 
     sub varint_decode($value) {
         my ($x, $read) = varint_decode_raw($value);
-        die 'Multiformats::Varint::varint_decode: not all bytes used by encoding' if($read > length($value)); 
+        die 'Multiformats::Varint::varint_decode: not all bytes used by encoding' if($read < length($value)); 
         return $x;
     }
 
@@ -71,5 +71,36 @@ package
             : $x;
     }
 }
+
+=pod
+
+=head1 NAME
+
+Multiformats::Varint - Varint decoding and encoding
+
+=head1 SYNOPSIS
+
+    use Multiformats::Varint qw/varint_encode varint_decode/;
+
+    my $encoded = varint_encode(300); # \xAC\x02
+    my $decoded = varint_decode("\xAC\x02"); # 300
+
+=head1 FUNCTIONS 
+
+=head2 varint_encode(...)
+
+Encodes the given unsigned integer number to an unsigned Varint; returns a byte string. Will die if the varint is larger than the spec allows (>9 bytes).
+
+=head2 varint_decode(...)
+
+Decodes the given byte string to an unsigned integer. Will die if there are more bytes passed than required to decode a Varint. 
+
+=head2 varint_decode_raw(...)
+
+Like varint_decode, but will not die when there are bytes left in the input. 
+
+When called in scalar context will return the decoded unsigned integer, when called in list context will return a list containing the unsigned integer, and the number of bytes used from the input. Does not alter the input value, so you will have to use C<substr> or some other mechanism to strip the used bytes out of the input value. 
+
+=cut
 
 1;

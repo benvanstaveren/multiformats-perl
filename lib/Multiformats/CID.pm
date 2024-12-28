@@ -33,9 +33,8 @@ package
         my $mc = Multiformats::Multicodec::_get_by_tag($mc_codec);
 
         # not sure what that codec tag does in here because it doesn't appear to do
-        # anything short of encoding, well, nothing - the remaining data is the multihash 
+        # anything - it's not encoding the remainder, so... what's it do Frank?!
         my ($mh, $hash) = multihash_unwrap(substr($bytes, $bread + $bread_codec));
-       
         return Multiformats::CID::CIDv1->new(version => 1, codec => $mc->[0], hash_function => $mh->[0], hash => $hash);  
     }
 }
@@ -43,14 +42,12 @@ package
 package 
     Multiformats::CID::CIDv1 {
     use Mojo::Base -base, -signatures;
-    use Multiformats::Multicodec qw/multicodec_wrap multicodec_unwrap/;
+    use Multiformats::Multicodec qw/multicodec_wrap/;
     use Multiformats::Multibase qw/multibase_encode/;
     use Multiformats::Varint qw/varint_encode/;
     use Multiformats::Multihash qw/multihash_wrap/;
     use overload bool => sub {1}, '""' => sub { shift->to_str }, fallback => 1;
 
-    # note that the codecs are the tag values, not the names, we need to take this into account
-    # in multibase_encode and multihash_encode
     has [qw/version codec hash_function hash/] => undef;
 
     sub to_str($self, $codec = 'base32') {
@@ -64,6 +61,59 @@ package
         return $version . $content; 
     }
 }
+
+=pod
+
+=head1 NAME
+
+Multiformats::CID - CID handling
+
+=head1 SYNOPSIS
+
+    use Multiformats::CID qw/cid/;
+
+    # can use either the stringified representation or the raw binary representation
+    my $cid = cid('bafyreigngt2aslhuh7jbgpuliep4v4uvlantdmew2ojr7u3upknttpvqxa');
+
+=head1 FUNCTIONS
+
+=head2 cid(...) 
+
+When given a string representation or binary representation of a CID will decode the version, codec, hash function, and hash value used and will return those wrapped in a C<Multiformats::CID::CIDv1> object.
+
+=head1 CIDv1 Object
+
+This object wraps a CID and has the following attributes and methods
+
+=head2 ATTRIBUTES
+
+=head3 version
+    
+Returns the version of the CID (always 1)
+
+=head3 codec
+
+Returns the name of the multibase codec
+
+=head3 hash_function
+
+Returns the name of the hash function used
+
+=head3 hash
+
+Returns the binary hash (obtained via the hash function)
+
+=head2 METHODS
+
+=head3 to_str() 
+
+Returns the stringified version of the CID. The CID object itself is overloaded to return this when used in string context. 
+
+=head3 to_bytes()
+
+Returns the binary representation of the CID. 
+   
+=cut 
 
 1;
     

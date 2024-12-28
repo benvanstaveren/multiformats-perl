@@ -74,4 +74,43 @@ package
     }
 }
 
+=pod
+
+=head1 NAME
+
+Multiformats::Multibase - Multibase decoding and encoding
+
+=head1 SYNOPSIS
+
+    use Multiformats::Multibase qw/multibase_encode multibase_decode/;
+
+    my $encoded = multibase_encode('base32', 'this will be base32 encoded');
+    my $decoded = multibase_decode($encoded_string);
+
+=head1 FUNCTIONS 
+
+=head2 multibase_encode($base, $data_to_encode)
+
+Encodes the given data with the given base. See below for supported bases.
+
+=head2 multibase_decode($encoded_data);
+
+Decodes the given data. When called in scalar context returns the decoded data. When called in list context returns a list containing the multibase tag and the decoded data
+
+=head1 SUPPORTED BASES
+
+=over
+
+=item * base32
+
+=item * base32upper
+
+=item * base36
+
+=item * base58btc
+
+=back
+
+=cut
+
 1;
