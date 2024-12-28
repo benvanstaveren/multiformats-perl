@@ -25,7 +25,7 @@ package
 
     # varint_encode, varint_decode_raw and varint_decode lifted from python multiformats https://github.com/hashberg-io/multiformats
     sub varint_encode($value) {
-        die 'PerlDS::Encoding::varint_encode: cannot encode negative values' unless $value >= 0;
+        die 'Multiformats::Varint::varint_encode: cannot encode negative values' unless $value >= 0;
         my @out = ();
         while(1) {
             my $next_byte = $value & 0b01111111;
@@ -37,7 +37,7 @@ package
                 last;
             }
         }
-        die 'PerlDS::Encoding::varint_encode: encoded varint > 9 bytes' unless scalar(@out) <= 9;
+        die 'Multiformats::Varint::varint_encode: encoded varint > 9 bytes' unless scalar(@out) <= 9;
         return wantarray 
             ? (pack('C*', @out), scalar(@out))
             : pack('C*', @out)
@@ -46,7 +46,7 @@ package
 
     sub varint_decode($value) {
         my ($x, $read) = varint_decode_raw($value);
-        die 'PerlDS::Encoding::varint_decode: not all bytes used by encoding' if($read > length($value)); 
+        die 'Multiformats::Varint::varint_decode: not all bytes used by encoding' if($read > length($value)); 
         return $x;
     }
 
@@ -59,7 +59,7 @@ package
                                         # via the num_bytes_read later
 
         while($expect_next) {
-            die 'PerlDS::Encoding::varint_decode: no next byte to read' if $num_bytes_read >= scalar(@buf);
+            die 'Multiformats::Varint::varint_decode_raw: no next byte to read' if $num_bytes_read >= scalar(@buf);
             my $next_byte = $buf[$num_bytes_read];
             $x += ($next_byte & 0b01111111) << (7 * $num_bytes_read);
             $expect_next = ($next_byte >> 7 == 0b1) ? 1 : undef;
