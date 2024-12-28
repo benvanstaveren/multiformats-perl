@@ -1,0 +1,6 @@
+.build/
+build/
+Multiformats-*
+.sw?
+.*.sw?
+package-version.txt

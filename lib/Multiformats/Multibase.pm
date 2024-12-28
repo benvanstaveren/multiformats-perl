@@ -22,32 +22,55 @@ package
         return bless({}, $pkg);
     }
 
-    # these 2 maps map the actual encoding and decoding
-    # to a subroutine that takes the to be decoded/encoded values as first argument
-    # please note that only a few formats are implemented by default
-    use constant MB_ENCODE_MAP => {
-        'none'          =>  sub { return "\0" . shift },
-        'base32'        =>  sub { return 'b' . encode_b32r(shift) },
-        'base36'        =>  sub { return 'k' . encode_base36(shift) },
-        'base58btc'     =>  sub { return 'z' . encode_b58b(shift) },
-    };
+    # this map holds the various encodings and decodings
+    use constant MB_MAP => [
+        [ 'none',       "\0",   sub { return shift },                       sub { return shift }                        ],
+        [ 'base32',     'b',    sub { return lc(encode_b32r(shift)) },      sub { return decode_b32r(uc(shift)) }       ],
+        [ 'base32upper','B',    sub { return encode_b32r(shift) },          sub { return decode_b32r(shift) }           ],
+        [ 'base36',     'k',    sub { return lc(encode_base36(shift)) },    sub { return decode_base36(shift) }         ],
+        [ 'base58btc',  'z',    sub { return encode_b58b(shift) },          sub { return decode_b58b(shift) }           ],
+    ];
 
-    use constant MB_DECODE_MAP => {
-        "\0"            =>  sub { return shift },
-        'b'             =>  sub { return decode_b32r(shift) },
-        'k'             =>  sub { return decode_base36(shift) },
-        'z'             =>  sub { return decode_b58b(shift) },
-    };
+    sub _map_by_tag($tag) {
+        foreach my $entry (@{__PACKAGE__->MB_MAP}) {
+            return $entry if($entry->[1] eq $tag);
+        }
+        return undef;
+    }
+
+    sub _map_by_name($name) {
+        if(length($name) == 1) {
+            return _map_by_tag($name);
+        } else {
+            foreach my $entry (@{__PACKAGE__->MB_MAP}) {
+                return $entry if($entry->[0] eq $name);
+            }
+            return undef;
+        }
+    }
 
     sub multibase_decode($bytes) {
+        # make sure it's actual bytes
+        utf8::downgrade($bytes, 1);
         my $t = substr($bytes, 0, 1);
-        die 'unknown format ' . $t . ', ' unless exists MB_DECODE_MAP->{$t};
-        return MB_DECODE_MAP->{$t}->(substr($bytes, 1));
+        if(my $e = _map_by_tag($t)) {
+            my $decoded = $e->[3]->(substr($bytes, 1));
+            return wantarray
+                ? ($t, $decoded)
+                : $decoded;
+        } else {
+            die 'unknown format ' . $t . ', ';
+        }
     }
 
     sub multibase_encode($as, $bytes) {
-        die 'unknown format ' . $as . ', ' unless exists MB_ENCODE_MAP->{$as};
-        return MB_ENCODE_MAP->{$as}->($bytes);
+        utf8::downgrade($bytes, 1);
+        if(my $e = _map_by_name($as)) {
+            my $encoded = $e->[1] . $e->[2]->($bytes);
+            return $encoded;
+        } else {
+            die 'unknown format ' . $as . ', ';
+        }
     }
 }
 
