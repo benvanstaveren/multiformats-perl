@@ -5,11 +5,11 @@ package
     use feature 'signatures';
 
     use Exporter 'import';
-    our @EXPORT_OK = qw/multihash_encode multihash_decode multihash_wrap multihash_unwrap/;
+    our @EXPORT_OK = qw/multihash_encode multihash_decode multihash_wrap multihash_unwrap multihash_unwrap_stream/;
 
     use Digest::SHA qw/sha1 sha256 sha384 sha512/; # SHA2
     use Digest::SHA3 qw/sha3_224 sha3_384 sha3_256/;
-    use Multiformats::Varint qw/varint_decode_raw varint_encode/;
+    use Multiformats::Varint qw/varint_decode_raw varint_encode varint_decode_stream/;
 
     sub decode($self, $value) {
         return multihash_decode($value);
@@ -65,6 +65,20 @@ package
         if(my $e = _map_by_tag($t)) {
             my ($l, $bread_len) = varint_decode_raw(substr($bytes, $bread_type));
             return substr($bytes, $bread_type + $bread_len); # there isn't any decoding since hashes are a one-way street so we just return the actual value
+        } else {
+            die 'unknown format ' . $t . ', ';
+        }
+    }
+
+    sub multihash_unwrap_stream($stream) {
+        my ($t, $bread_type) = varint_decode_stream($stream);
+        if(my $e = _map_by_tag($t)) {
+            my ($l, $bread_len) = varint_decode_stream($stream);
+            my $buf;
+            $stream->read($buf, $l); # the raw digest 
+            return wantarray
+                ? ([$e->[0], $e->[1] ], $buf)            # allows us to get the whole kit and kaboodle in one sitting 
+                : $buf
         } else {
             die 'unknown format ' . $t . ', ';
         }

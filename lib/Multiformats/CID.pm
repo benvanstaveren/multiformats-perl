@@ -2,25 +2,39 @@ package
     Multiformats::CID {
 
     use feature 'signatures';
+    use feature 'isa';
     use Exporter 'import';
     our @EXPORT_OK = qw/cid/;
-    use Multiformats::Varint qw/varint_decode_raw/;
+    use Multiformats::Varint qw/varint_decode_raw varint_decode_stream/;
     use Multiformats::Multicodec qw/multicodec_get_codec multicodec_wrap/;
     use Multiformats::Multibase qw/multibase_decode/;
-    use Multiformats::Multihash qw/multihash_unwrap/;
+    use Multiformats::Multihash qw/multihash_unwrap multihash_unwrap_stream/;
 
     sub cid($bytes) {
-        utf8::downgrade($bytes, 1);
-
-        # so a v0 and v1 cid in binary should start with either 0x00 or 0x01 - if that isn't the case
-        # assume we have a string cid
-        if(substr($bytes, 0, 1) ne "\0" && substr($bytes, 0, 1) ne "\1") {
-            my $binary = multibase_decode($bytes);
-            return cid_from_binary($binary);
+        if(ref($bytes) && ($bytes isa 'IO::Handle' && $bytes isa 'IO::Seekable')) {
+            return cid_from_stream($bytes);
         } else {
-            # binary
-            return cid_from_binary($bytes);
+            utf8::downgrade($bytes, 1);
+
+            # so a v0 and v1 cid in binary should start with either 0x00 or 0x01 - if that isn't the case
+            # assume we have a string cid
+            if(substr($bytes, 0, 1) ne "\0" && substr($bytes, 0, 1) ne "\1") {
+                my $binary = multibase_decode($bytes);
+                return cid_from_binary($binary);
+            } else {
+                # binary
+                return cid_from_binary($bytes);
+            }
         }
+    }
+
+    sub cid_from_stream($stream) {
+        my ($version, $bread) = varint_decode_stream($stream);
+        die 'Unsupported CID version ', $version, ', ' unless $version == 1;
+        my ($mc_codec, $bread_codec) = varint_decode_stream($stream);
+        my $mc = Multiformats::Multicodec::_get_by_tag($mc_codec);
+        my ($mh, $hash) = multihash_unwrap_stream($stream);
+        return Multiformats::CID::CIDv1->new(version => 1, codec => $mc->[0], hash_function => $mh->[0], hash => $hash);  
     }
 
     sub cid_from_binary($bytes) {
