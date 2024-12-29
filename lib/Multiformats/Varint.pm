@@ -5,7 +5,7 @@ package
     use feature 'signatures';
 
     use Exporter 'import';
-    our @EXPORT_OK = qw/varint_encode varint_decode varint_decode_raw/;
+    our @EXPORT_OK = qw/varint_encode varint_decode varint_decode_raw varint_decode_stream/;
 
     sub decode($self, $value) {
         return varint_decode($value);
@@ -17,6 +17,10 @@ package
 
     sub encode($self, $value) {
         return varint_encode($value);
+    }
+
+    sub decode_stream($self, $stream) {
+        return varint_decode_stream($stream);
     }
 
     sub new($pkg) {
@@ -48,6 +52,25 @@ package
         my ($x, $read) = varint_decode_raw($value);
         die 'Multiformats::Varint::varint_decode: not all bytes used by encoding' if($read < length($value)); 
         return $x;
+    }
+
+    sub varint_decode_stream($stream) {
+        my $expect_next = 1;
+        my $num_bytes_read = 0;
+        my $x = 0;
+
+        while($expect_next) {
+            die 'Multiformats::Varint::varint_decode_stream: no next byte to read' if $stream->eof;
+            my $next_byte;
+            my $bread = $stream->read($next_byte, 1);
+            $x += ($next_byte & 0b01111111) << (7 * $num_bytes_read);
+            $expect_next = ($next_byte >> 7 == 0b1) ? 1 : undef;
+            $num_bytes_read += $bread;
+        }
+    
+        return wantarray
+            ? ($x, $num_bytes_read)
+            : $x;
     }
 
     sub varint_decode_raw($value) {
